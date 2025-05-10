@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "520713336303",
+    "project_id": "mapapp-fdfdc",
+    "storage_bucket": "mapapp-fdfdc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:520713336303:android:b0972beb5ded34d8aa321a",
+        "android_client_info": {
+          "package_name": "com.example.mapflutterapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDs0PLhqHl8vkMfs8e6HZnDOHeKGXTfuA4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
