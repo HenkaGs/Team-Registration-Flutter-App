@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'team_registration_screen.dart';
+import '../firebase_service.dart';
+import 'start_screen.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -55,6 +57,16 @@ class HomePage extends StatelessWidget {
             _menuButton(context, 'Players', () {/*navigate*/}),
             const Divider(height: 1, color: Colors.grey),
             _menuButton(context, 'View Liveupdates', () {/*navigate*/}),
+            const Divider(height: 1, color: Colors.grey),
+            _menuButton(context, 'Log Out', () async {
+              final authService = AuthService();
+              await authService.logout();
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const StartScreen()),
+                (route) => false,
+              );
+            }),
             const Divider(height: 1, color: Colors.grey),
 
             // ─── Push everything up, no stretching ───────────────

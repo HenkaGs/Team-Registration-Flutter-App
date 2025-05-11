@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import '../firebase_service.dart';
+import '../models/team.dart';
+import 'create_team_screen.dart';
 
 class TeamRegistrationScreen extends StatelessWidget {
   const TeamRegistrationScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final FirestoreService firestoreService = FirestoreService();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Team Registration'),
@@ -16,7 +21,10 @@ class TeamRegistrationScreen extends StatelessWidget {
           children: [
             ElevatedButton(
               onPressed: () {
-                // Navigate to team registration form
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CreateTeamScreen()),
+                );
               },
               child: const Text('Register New Team'),
             ),
@@ -30,13 +38,35 @@ class TeamRegistrationScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Expanded(
-              child: ListView.builder(
-                itemCount: 10, // Replace with the actual number of teams
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text('Team ${index + 1}'), // Replace with team name
-                    onTap: () {
-                      // Handle team selection
+              child: StreamBuilder<List<Team>>(
+                stream: firestoreService.getTeams(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return const Center(child: Text('Error loading teams'));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(child: Text('No teams registered'));
+                  }
+
+                  final teams = snapshot.data!;
+                  return ListView.builder(
+                    itemCount: teams.length,
+                    itemBuilder: (context, index) {
+                      final team = teams[index];
+                      return ListTile(
+                        title: Text(team.name),
+                        subtitle: Text('Coach: ${team.coach}'),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () async {
+                            await firestoreService.deleteTeam(team.id);
+                          },
+                        ),
+                        onTap: () {
+                          // Handle team selection or editing
+                        },
+                      );
                     },
                   );
                 },
