@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../firebase_service.dart';
 import '../models/team.dart';
+import '../models/player.dart';
 
 class CreateTeamScreen extends StatefulWidget {
   const CreateTeamScreen({super.key});
@@ -13,28 +14,35 @@ class CreateTeamScreen extends StatefulWidget {
 class _CreateTeamScreenState extends State<CreateTeamScreen> {
   final TextEditingController _teamNameController = TextEditingController();
   final TextEditingController _coachNameController = TextEditingController();
-  final List<TextEditingController> _playerControllers = [];
+  final TextEditingController _contactNameController = TextEditingController();
+  final TextEditingController _contactEmailController = TextEditingController();
+  final TextEditingController _contactPhoneController = TextEditingController();
   final FirestoreService _firestoreService = FirestoreService();
 
-  void _addPlayerField() {
-    setState(() {
-      _playerControllers.add(TextEditingController());
-    });
+  List<Player> _allPlayers = [];
+  List<String> _selectedPlayerIds = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPlayers();
   }
 
-  void _removePlayerField(int index) {
+  void _fetchPlayers() async {
+    final players = await FirestoreService().getPlayers().first;
     setState(() {
-      _playerControllers.removeAt(index);
+      _allPlayers = players;
     });
   }
 
   Future<void> _createTeam() async {
-    final players = _playerControllers.map((controller) => controller.text).toList();
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error: User not logged in.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error: User not logged in.')),
+        );
+      }
       return;
     }
 
@@ -42,80 +50,186 @@ class _CreateTeamScreenState extends State<CreateTeamScreen> {
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       name: _teamNameController.text,
       coach: _coachNameController.text,
-      players: players,
+      players: _selectedPlayerIds,
       userId: userId,
+      contactName: _contactNameController.text,
+      contactEmail: _contactEmailController.text,
+      contactPhone: _contactPhoneController.text,
     );
     await _firestoreService.createTeam(newTeam);
-    Navigator.pop(context); // Navigate back to the Team Registration screen
+    if (mounted) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    const deepBlue = Color(0xFF002B7F);
+    const flagRed = Color(0xFFC8102E);
+    const flagGreen = Color(0xFF007A33);
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Team'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      backgroundColor: Colors.grey[100],
+      body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              controller: _teamNameController,
-              decoration: const InputDecoration(
-                labelText: 'Team Name',
-                border: OutlineInputBorder(),
+            // Header with Back Button
+            Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: deepBlue,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(24),
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+              child: Stack(
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ),
+                  const Align(
+                    alignment: Alignment.center,
+                    child: Text(
+                      'Create Team',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _coachNameController,
-              decoration: const InputDecoration(
-                labelText: 'Coach Name',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Players:',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 24),
+
+            // Form Fields
             Expanded(
-              child: ListView.builder(
-                itemCount: _playerControllers.length,
-                itemBuilder: (context, index) {
-                  return Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _playerControllers[index],
-                          decoration: InputDecoration(
-                            labelText: 'Player ${index + 1}',
-                            border: const OutlineInputBorder(),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildField(_teamNameController, 'Team Name'),
+                    const SizedBox(height: 16),
+                    _buildField(_coachNameController, 'Coach Name'),
+                    const SizedBox(height: 16),
+                    _buildField(_contactNameController, 'Contact Person Name'),
+                    const SizedBox(height: 16),
+                    _buildField(_contactEmailController, 'Contact Email'),
+                    const SizedBox(height: 16),
+                    _buildField(_contactPhoneController, 'Contact Phone'),
+                    const SizedBox(height: 24),
+
+                    const Text(
+                      'Players:',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Player selection (multi-select)
+                    _allPlayers.isEmpty
+                        ? const Text('No players available. Add players first in Player Management.')
+                        : Column(
+                            children: _allPlayers.map((player) {
+                              return CheckboxListTile(
+                                value: _selectedPlayerIds.contains(player.id),
+                                title: Text('${player.name} (Age: ${player.age}, Position: ${player.position})'),
+                                onChanged: (selected) {
+                                  setState(() {
+                                    if (selected == true) {
+                                      _selectedPlayerIds.add(player.id);
+                                    } else {
+                                      _selectedPlayerIds.remove(player.id);
+                                    }
+                                  });
+                                },
+                              );
+                            }).toList(),
                           ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.remove_circle, color: Colors.red),
-                        onPressed: () => _removePlayerField(index),
-                      ),
-                    ],
-                  );
-                },
+                    const SizedBox(height: 8),
+
+                    // Create Team Button
+                    _buildActionButton(
+                      text: 'Create Team',
+                      color: flagRed,
+                      onTap: _createTeam,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: _addPlayerField,
-              child: const Text('Add Player'),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _createTeam,
-              child: const Text('Create Team'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildField(TextEditingController controller, String label) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required String text,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );

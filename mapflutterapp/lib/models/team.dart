@@ -4,6 +4,9 @@ class Team {
   final String coach;
   final List<String> players;
   final String userId; // ID of the user who created the team
+  final String contactName;
+  final String contactEmail;
+  final String contactPhone;
 
   Team({
     required this.id,
@@ -11,6 +14,9 @@ class Team {
     required this.coach,
     required this.players,
     required this.userId,
+    required this.contactName,
+    required this.contactEmail,
+    required this.contactPhone,
   });
 
   factory Team.fromJson(Map<String, dynamic> json) {
@@ -20,6 +26,9 @@ class Team {
       coach: json['coach'],
       players: List<String>.from(json['players']),
       userId: json['userId'],
+      contactName: json['contactName'],
+      contactEmail: json['contactEmail'],
+      contactPhone: json['contactPhone'],
     );
   }
 
@@ -30,6 +39,9 @@ class Team {
       'coach': coach,
       'players': players,
       'userId': userId,
+      'contactName': contactName,
+      'contactEmail': contactEmail,
+      'contactPhone': contactPhone,
     };
   }
 
@@ -39,6 +51,9 @@ class Team {
     String? coach,
     List<String>? players,
     String? userId,
+    String? contactName,
+    String? contactEmail,
+    String? contactPhone,
   }) {
     return Team(
       id: id ?? this.id,
@@ -46,6 +61,9 @@ class Team {
       coach: coach ?? this.coach,
       players: players ?? this.players,
       userId: userId ?? this.userId,
+      contactName: contactName ?? this.contactName,
+      contactEmail: contactEmail ?? this.contactEmail,
+      contactPhone: contactPhone ?? this.contactPhone,
     );
   }
 }

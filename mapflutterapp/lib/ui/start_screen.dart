@@ -6,7 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 
 class StartScreen extends StatelessWidget {
-  const StartScreen({Key? key}) : super(key: key);
+  const StartScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
